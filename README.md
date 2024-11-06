@@ -77,11 +77,8 @@ Add a new `<command>` and `<integration>` entry, replacing `https://api.green-ap
 
     <integration>
         <name>wazuh-alert-notifier</name>
-        <hook_url></hook_url>
         <alert_format>json</alert_format>
-        <levels>3</levels>
-        <rule_id></rule_id>
-        <alert_fields></alert_fields>
+        <level>3</level>
     </integration>
 
     ...
