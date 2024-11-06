@@ -1,6 +1,6 @@
-# wazuh-alert-notifier
 
-A Go-based script for Wazuh that sends plain-text alerts to the Green API, allowing notifications via services like WhatsApp and other messaging platforms. This notifier integrates seamlessly with Wazuh to forward alert data in real-time.
+# wazuh-alert-notifier API
+A Go-based API for Wazuh that receives alert data and forwards it to the Green API, enabling real-time notifications through messaging platforms like WhatsApp. This API integrates with Wazuh as an HTTP endpoint, listening for incoming alerts and automatically relaying them to the Green API for seamless notification delivery. This setup enhances alerting capabilities, making it easy to keep teams informed of security events as they happen.
 
 ## Installation
 Clone the Repository and Compile the API:
