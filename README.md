@@ -3,107 +3,148 @@
 A Go-based script for Wazuh that sends plain-text alerts to the Green API, allowing notifications via services like WhatsApp and other messaging platforms. This notifier integrates seamlessly with Wazuh to forward alert data in real-time.
 
 ## Installation
-
-### Step 1: Download the Repository
-
-First, clone the repository from GitHub:
+Clone the Repository and Compile the API:
 
 ```bash
 git clone https://github.com/herbertpk/wazuh-alert-notifier.git
-```
-
-Navigate to the cloned repository:
-
-```bash
 cd wazuh-alert-notifier
+go build -o wazuh-alert-api main.go
 ```
 
-### Step 2: Compile the Go Script
-
-Ensure Go is installed on your system. Verify the installation with:
+Move the Binary to a System-Wide Location:
 
 ```bash
-go version
+sudo mv wazuh-alert-api /usr/local/bin/
 ```
 
-If not installed, follow Go's official installation instructions.
-
-Compile the Go script into a binary:
+Set Up Environment Variables: Create a `.env` file to store Green API credentials and configuration values:
 
 ```bash
-go build -o wazuh-alert-notifier notify_alert.go
+sudo nano /etc/wazuh-alert-api.env
 ```
 
-This will generate an executable file named `wazuh-alert-notifier` in the current directory.
-
-### Step 3: Move the Binary to Wazuh’s Integrations Directory
-
-Move the compiled binary to the Wazuh integrations folder so it can be accessed by Wazuh:
+Add the following configuration, replacing placeholders with your actual Green API details:
 
 ```bash
-sudo mv wazuh-alert-notifier /var/ossec/integrations/
+GREEN_API_URL="https://7103.api.greenapi.com"
+GREEN_API_INSTANCE_ID="your_idInstance"
+GREEN_API_TOKEN="your_apiTokenInstance"
+GREEN_API_CHAT_ID="your_chatId"
 ```
 
-Verify the binary is in the correct directory:
+### Step 2: Create a Systemd Service for the API Server
+
+Create a Systemd Service File:
 
 ```bash
-ls /var/ossec/integrations/
+sudo nano /etc/systemd/system/wazuh-alert-api.service
 ```
 
-You should see `wazuh-alert-notifier` listed.
+Add the following content:
 
-### Step 4: Configure Wazuh to Use the Script with Green API Credentials
+```ini
+[Unit]
+Description=Wazuh Alert Notifier API
+After=network.target
 
-To connect to the Green API, you need to configure Wazuh’s integration settings. Green API requires an `apiURL`, `idInstance`, and `apiTokenInstance` to send messages. These credentials must be provided in the Wazuh configuration.
+[Service]
+EnvironmentFile=/etc/wazuh-alert-api.env
+ExecStart=/usr/local/bin/wazuh-alert-api
+Restart=always
+User=wazuh  # Adjust this to the user running the Wazuh service
+WorkingDirectory=/usr/local/bin
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=wazuh-alert-api
 
-Open the Wazuh configuration file:
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and Start the Service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable wazuh-alert-api
+sudo systemctl start wazuh-alert-api
+```
+
+Check Service Status:
+
+```bash
+sudo systemctl status wazuh-alert-api
+```
+
+Confirm that the service is running correctly.
+
+### Step 3: Configure Wazuh Integration with the Notifier API
+
+Edit the Wazuh Configuration File:
+
+Open the `ossec.conf` file to configure Wazuh to use the notifier API as an integration.
 
 ```bash
 sudo nano /var/ossec/etc/ossec.conf
 ```
 
-Add a new `<command>` and `<integration>` entry, replacing `https://api.green-api.com` with the Green API’s URL and providing the appropriate `idInstance`, `apiTokenInstance` and `chatId` as arguments.
+Add the Integration Configuration:
+
+Add a `<command>` and `<integration>` entry for `wazuh-alert-notifier` in the configuration file. Replace `http://localhost:8080/alert` with the endpoint where the notifier API server is listening.
 
 ```xml
 <ossec_config>
     ...
-    
-    <command>
-        <name>wazuh-alert-notifier</name>
-        <executable>var/ossec/integrations/wazuh-alert-notifier</executable>
-        <extra_args>https://api.green-api.com your_idInstance your_apiTokenInstance your_chatId</extra_args> 
-        <expect>json</expect>
-    </command>
-
+    <!-- Configure the integration trigger -->
     <integration>
         <name>wazuh-alert-notifier</name>
+        <hook_url>http://localhost:8080/alert</hook_url>
         <alert_format>json</alert_format>
-        <level>3</level>
+        <level>3</level> <!-- Set to trigger on alerts with level 3 or higher -->
     </integration>
 
     ...
 </ossec_config>
 ```
+Save and Close the Configuration File.
 
-Save and close the file. Ensure you replace `your_idInstance` and `your_apiTokenInstance` with your actual Green API credentials.
-
-### Step 5: Restart Wazuh Manager
-
-After saving the changes, restart the Wazuh manager to apply the configuration:
+Restart Wazuh Manager:
 
 ```bash
 sudo systemctl restart wazuh-manager
 ```
 
-### Step 6: Test the Configuration
+### Step 4: Testing the Integration
 
-To verify that Wazuh is correctly using the `wazuh-alert-notifier` script with the Green API:
+Generate a Test Alert:
 
-1. Generate an alert in Wazuh to trigger the notifier.
-2. Check the Wazuh logs to confirm the notifier executed as expected:
+Use the `ossec-logtest` tool to generate a test alert and trigger the integration:
+
+```bash
+sudo /var/ossec/bin/ossec-logtest
+```
+
+In the interactive prompt, type a log line that would trigger an alert (e.g., with a severity level of 3 or higher):
+
+```bash
+2024/11/06 wazuh: test alert - severity level 3
+```
+
+Check Wazuh Logs:
+
+Monitor Wazuh’s logs to confirm that the `wazuh-alert-notifier` command was triggered:
 
 ```bash
 tail -f /var/ossec/logs/ossec.log
 ```
 
-If everything is set up correctly, `wazuh-alert-notifier` will process the alert and send it via the Green API to the specified messaging service, such as WhatsApp. Check your messaging platform for the notification.
+Check API Logs:
+
+Monitor the logs for the `wazuh-alert-api` service to verify that it received the alert data and processed it correctly:
+
+```bash
+sudo journalctl -u wazuh-alert-api -f
+```
+
+Verify Alert Delivery:
+
+Check the destination (such as the Green API or a messaging service like WhatsApp) to confirm that the alert message was successfully forwarded.
