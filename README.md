@@ -31,7 +31,7 @@ If not installed, follow Go's official installation instructions.
 Compile the Go script into a binary:
 
 ```bash
-go build -o wazuh-alert-notifier main.go
+go build -o wazuh-alert-notifier notify_alert.go
 ```
 
 This will generate an executable file named `wazuh-alert-notifier` in the current directory.
