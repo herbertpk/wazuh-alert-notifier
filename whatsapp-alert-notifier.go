@@ -13,9 +13,9 @@ import (
 // Alert represents the structure of the alert from Wazuh
 type Alert struct {
 	Rule struct {
-		Description string `json:"description"`
-		Level       int    `json:"level"`
-		ID          int    `json:"id"`
+		Description string      `json:"description"`
+		Level       int         `json:"level"`
+		ID          interface{} `json:"id"` // Accepts both int and string
 	} `json:"rule"`
 	Agent struct {
 		Name string `json:"name"`
@@ -27,17 +27,16 @@ type Alert struct {
 
 // MessagePayload represents the payload structure for the Green API
 type MessagePayload struct {
-	ChatID         string `json:"chatId"`
-	Message        string `json:"message"`
+	ChatID  string `json:"chatId"`
+	Message string `json:"message"`
 }
 
 // sendToGreenAPI sends the alert message to the Green API
 func sendToGreenAPI(hookURL, chatId, message string) error {
-	
 	// Create payload
 	payload := MessagePayload{
-		ChatID:      chatId,
-		Message:     message,
+		ChatID:  chatId,
+		Message: message,
 	}
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
@@ -92,14 +91,23 @@ func main() {
 		log.Fatalf("failed to parse alert JSON: %v", err)
 	}
 
+	// Handle possible types for Rule ID (int or string)
+	var ruleID string
+	switch id := alert.Rule.ID.(type) {
+	case float64:
+		ruleID = fmt.Sprintf("%.0f", id) // Convert float64 (JSON numbers) to string
+	case string:
+		ruleID = id
+	default:
+		log.Fatalf("unexpected type for rule ID: %T", id)
+	}
+
 	// Create message based on alert content
-	alertMessage := fmt.Sprintf("Wazuh Alert:\nDescription: %s\nLevel: %d\nRule ID: %d\nAgent: %s (IP: %s)\nTime: %s",
-		alert.Rule.Description, alert.Rule.Level, alert.Rule.ID, alert.Agent.Name, alert.Agent.IP, alert.Timestamp)
+	alertMessage := fmt.Sprintf("Wazuh Alert:\nDescription: %s\nLevel: %d\nRule ID: %s\nAgent: %s (IP: %s)\nTime: %s",
+		alert.Rule.Description, alert.Rule.Level, ruleID, alert.Agent.Name, alert.Agent.IP, alert.Timestamp)
 
 	// Send alert message to Green API
 	if err := sendToGreenAPI(hookURL, chatId, alertMessage); err != nil {
 		log.Fatalf("failed to send alert: %v", err)
 	}
 }
-
-
