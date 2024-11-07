@@ -60,7 +60,7 @@ sudo mv custom-whatsapp-notifier /var/ossec/integrations/
 
 ```bash
 sudo chmod 750 /var/ossec/integrations/custom-whatsapp-notifier
-sudo chown root:ossec /var/ossec/integrations/custom-whatsapp-notifier
+sudo chown root:wazuh /var/ossec/integrations/custom-whatsapp-notifier
 ```
 
 ### Step 3: Configure Wazuh to Use the Notifier
