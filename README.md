@@ -1,8 +1,8 @@
-# Wazuh Alert Notifier
+# Wazuh Whatsapp Notifier
 
 ## Project Description
 
-The Wazuh Alert Notifier is a Go-based integration tool designed to forward Wazuh alerts to WhatsApp using the Green API. This integration allows real-time notifications of security alerts by automatically sending messages to a specified WhatsApp chat or group whenever a significant event is detected by Wazuh.
+The Wazuh Watsapp Notifier is a Go-based integration tool designed to forward Wazuh alerts to WhatsApp using the Green API. This integration allows real-time notifications of security alerts by automatically sending messages to a specified WhatsApp chat or group whenever a significant event is detected by Wazuh.
 
 ## Key Features
 
